@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <cstdio>
-#include <cmath> 
+#include <cmath>
 
 using namespace std;
 
@@ -60,6 +60,21 @@ int main(int argc, char* argv[])
      		for(int j=0; j < mol.natom; j++) {
 			hessian >> H[i][3*j] >> H[i][3*j+1] >> H[i][3*j+2];
      		}
+	}
+
+	// replace matrix with mass-weighted version 
+	for(int i=0; i < mol.natom*3; i++) {
+		for(int j=0; j < mol.natom*3; j++) {
+			double mass_i = atomic_mass[mol.zvals[i/3]];
+			double mass_j = atomic_mass[mol.zvals[j/3]];
+			H[i][j] = H[i][j] / sqrt(mass_i * mass_j);
+     		}
+	}
+	// print matrix
+	for(int i=0; i < mol.natom*3; i++) {
+		for(int j=0; j < mol.natom*3; j++)
+     			printf("%13.7f", H[i][j]);
+		printf("\n"); 
 	}
 
 	return 0;
