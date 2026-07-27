@@ -7,6 +7,13 @@
 #include <cstdio>
 #include <cmath>
 
+#include "Eigen/Dense"
+#include "Eigen/Eigenvalues"
+#include "Eigen/Core"
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -76,6 +83,23 @@ int main(int argc, char* argv[])
      			printf("%13.7f", H[i][j]);
 		printf("\n"); 
 	}
+
+	// convert from array to Eigen matrix
+	Matrix F(3*mol.natom,3*mol.natom);
+	for(int i=0; i < mol.natom*3; i++) {
+		for(int j=0; j < mol.natom*3; j++)
+			F(i,j) = H[i][j];
+	}
+
+	// diagonalize 
+	Eigen::SelfAdjointEigenSolver<Matrix> solver(F);
+	Matrix evals = solver.eigenvalues();
+	for(int k=0; k < mol.natom*3; k++) {
+		if(fabs(evals(k)) < 1e-10)
+			evals(k) = 0.0;
+	}
+	cout << "\nEigenvalues:\n";
+	cout << evals << endl;
 
 	return 0;
 }
