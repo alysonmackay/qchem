@@ -80,6 +80,26 @@ int main(int argc, char* argv[])
 			}
 		}
 	}
+	// finding center of mass 
+	double M = 0.0;
+	for(int i=0; i < mol.natom; i++) M += atomic_mass[(int) mol.zvals[i]];
+
+	double x_cm=0.0;
+	double y_cm=0.0;
+	double z_cm=0.0;
+	double mi; 
+	for(int i=0; i < mol.natom; i++) {
+		mi = atomic_mass[(int) mol.zvals[i]];
+		x_cm += mi * mol.geom[i][0];
+		y_cm += mi * mol.geom[i][1];
+		z_cm += mi * mol.geom[i][2];
+	}
+	x_cm /= M;
+	y_cm /= M;
+	z_cm /= M;
+	printf("\nMolecular center of mass: %12.8f %12.8f %12.8f\n", x_cm, y_cm, z_cm);
+
+	mol.translate(-x_cm, -y_cm, -z_cm);
 
 	return 0;
 }

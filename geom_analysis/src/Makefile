@@ -13,7 +13,7 @@ $(TARGET): $(OBJECTS)
 
 .PHONY: clean run
 clean: 
-	rm -f $(OBJECTS) $(TARGET) 
+	rm -f $(OBJECTS) $(TARGET) acetaldehyde.out
 
 run: $(TARGET) 
 	./$(TARGET) ../input/acetaldehyde.dat >> acetaldehyde.out
