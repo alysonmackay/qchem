@@ -8,6 +8,13 @@
 #include <cstdio>
 #include <cmath> 
 
+#include "Eigen/Dense"
+#include "Eigen/Eigenvalues"
+#include "Eigen/Core"
+
+typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
+typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
+
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -100,6 +107,29 @@ int main(int argc, char* argv[])
 	printf("\nMolecular center of mass: %12.8f %12.8f %12.8f\n", x_cm, y_cm, z_cm);
 
 	mol.translate(-x_cm, -y_cm, -z_cm);
+
+	// moment of inertia tensor
+	Matrix I(3,3); // invoke 3x3 matrix
+	
+	// fill tensor (diagonals first)
+	for(int i=0; i < mol.natom; i++) {
+		mi = atomic_mass[(int) mol.zvals[i]];
+		I(0,0) += mi * (mol.geom[i][1]*mol.geom[i][1] + mol.geom[i][2]*mol.geom[i][2]);
+		I(1,1) += mi * (mol.geom[i][0]*mol.geom[i][0] + mol.geom[i][2]*mol.geom[i][2]);
+		I(2,2) += mi * (mol.geom[i][0]*mol.geom[i][0] + mol.geom[i][1]*mol.geom[i][1]);
+
+		I(0,1) -= mi * mol.geom[i][0]*mol.geom[i][1];
+		I(0,2) -= mi * mol.geom[i][0]*mol.geom[i][2];
+		I(1,2) -= mi * mol.geom[i][1]*mol.geom[i][2];
+	}
+	// symmetry 
+	I(1,0) = I(0,1);
+	I(2,0) = I(0,2);
+	I(2,1) = I(1,2);
+
+	cout << fixed << setprecision(7);
+	cout << "\nMomemnt of inertia tensor (amu bohr^2):\n";
+	cout << I << endl;
 
 	return 0;
 }

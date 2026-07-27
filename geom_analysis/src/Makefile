@@ -1,6 +1,6 @@
 CXX	 = g++ 
 CXXFLAGS = -std=c++14 -Wall -O2
-INCLUDES = -isystem ../eigen 
+INCLUDES = -isystem ../../eigen/ 
 
 TARGET = geom 
 OBJECTS = geom.o molecule.o 
