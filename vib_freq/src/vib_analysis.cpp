@@ -51,5 +51,16 @@ int main(int argc, char* argv[])
 		return 1;
 	}
 
+	// converting from 3x(3N^2) to 3N x 3N 
+	double **H = new double* [mol.natom*3];
+	for(int i=0; i < mol.natom*3; i++)
+		H[i] = new double[mol.natom*3]; 
+
+	for(int i=0; i < mol.natom*3; i++) {
+     		for(int j=0; j < mol.natom; j++) {
+			hessian >> H[i][3*j] >> H[i][3*j+1] >> H[i][3*j+2];
+     		}
+	}
+
 	return 0;
 }
