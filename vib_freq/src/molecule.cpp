@@ -91,7 +91,8 @@ Molecule::Molecule(const char *filename, int q)
 	assert(is.good()); 
 
 	// read num atoms from file 
-	is >> natom; 
+	is >> natom;
+	double z_temp;
 
 	// allocate space
 	zvals = new int[natom];
@@ -99,9 +100,10 @@ Molecule::Molecule(const char *filename, int q)
 	for(int i=0; i < natom; i++)
 		geom[i] = new double[3];
 
-	for(int i=0; i < natom; i++)
-		is >> zvals[i] >> geom[i][0] >> geom[i][1] >> geom[i][2];
-
+	for(int i=0; i < natom; i++) {
+		is >> z_temp >> geom[i][0] >> geom[i][1] >> geom[i][2];
+		zvals[i] = z_temp;
+	}
 	is.close();
 }
 
