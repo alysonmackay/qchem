@@ -130,6 +130,47 @@ int main(int argc, char* argv[])
 	cout << fixed << setprecision(7);
 	cout << "\nMomemnt of inertia tensor (amu bohr^2):\n";
 	cout << I << endl;
+	
+	// principal moment of inertia (diagonalization of I)
+	Eigen::SelfAdjointEigenSolver<Matrix> solver(I);
+	Matrix evecs = solver.eigenvectors();
+	Matrix evals = solver.eigenvalues();
+
+	cout << "\nPrincipal moments of inertia (amu * bohr^2):\n";
+	cout << evals << endl;
+
+	double conv = 0.529177249 * 0.529177249;
+	cout << "\nPrincipal moments of inertia (amu * AA^2):\n";
+	cout << evals * conv << endl;
+
+	conv = 1.6605402E-24 * 0.529177249E-8 * 0.529177249E-8;
+	cout << "\nPrincipal moments of inertia (g * cm^2):\n";
+	cout << evals * conv << endl;  // TODO: fix precision problem here 
+	
+	// assigning rotor types 
+	if(mol.natom == 2) cout << "\nMolecule is diatomic\n";
+	else if(evals(0) < 1e-4) cout << "\nMolecule is linear\n";
+	else if(fabs(evals(0) - evals(1)) < 1e-4 && (fabs(evals(1) - evals(2)) < 1e-4))
+		cout << "\nMolecule is a spherical top\n";
+	else if(fabs(evals(0) - evals(1)) < 1e-4 && (fabs(evals(1) - evals(2)) > 1e-4))
+		cout << "\nMolecule is an oblate symmetric top\n";
+	else if(fabs(evals(0) - evals(1)) > 1e-4 && (fabs(evals(1) - evals(2)) < 1e-4))
+		cout << "\nMolecule is a prolate symmetric top \n";
+	else cout << "\nMolecule is an asymmetric top\n";
+
+	// compute the rotational constants 
+	double _pi = acos(-1.0);
+	conv = 6.6260755E-34/(8.0 * _pi * _pi);
+	conv /= 1.6605402E-27 * 0.529177249E-10 * 0.529177249E-10;
+	conv *= 1e-6;
+	cout << "\nRotational constants (MHz):\n";
+	cout << "\tA = " << conv/evals(0) << "\t B = " << conv/evals(1) << "\t C = " << conv/evals(2) << endl;
+
+	conv = 6.6260755E-34/(8.0 * _pi * _pi);
+	conv /= 1.6605402E-27 * 0.529177249E-10 * 0.529177249E-10;
+	conv /= 2.99792458E10;
+	cout << "\nRotational constants (cm-1):\n";
+	cout << "\tA = " << conv/evals(0) << "\t B = " << conv/evals(1) << "\t C = " << conv/evals(2) << endl;
 
 	return 0;
 }
