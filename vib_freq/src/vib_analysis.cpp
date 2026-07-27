@@ -14,6 +14,8 @@
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> Matrix;
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 
+constexpr double PI = 3.14159265358979323846; 
+
 using namespace std;
 
 int main(int argc, char* argv[])
@@ -100,6 +102,17 @@ int main(int argc, char* argv[])
 	}
 	cout << "\nEigenvalues:\n";
 	cout << evals << endl;
+
+	// convert harmonic vibrational frequencies to wavenumbers
+	// currently in E_h (a0^2 * amu); need nu = 1/(2*pi*c) * sqrt(evals)
+	double E_h = 4.3597447e-18, a0 = 5.2917721e-11, amu = 1.6605391e-27, c = 2.9979246e10;
+	double conv = E_h / (a0*a0*amu);          // 9.3768e29
+	Matrix evals_nu = evals;
+	for(int k=0; k < mol.natom*3; k++) {
+		evals_nu(k) = sqrt(evals(k) * conv) / (2*PI*c);
+	}
+	cout << "\nHarmonic vibrational frequencies (wavenumbers):\n";
+	cout << evals_nu << endl;
 
 	return 0;
 }
