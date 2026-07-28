@@ -108,12 +108,19 @@ int main(int argc, char* argv[])
 	int nocc = total / 2; 
 	cout << nocc << endl;
 
-	Matrix D = Matrix::Zero(n,n);
+	Matrix D0 = Matrix::Zero(n,n);
 	for(int mu = 0; mu < n; ++mu)
 		for(int nu = 0; nu < n; ++nu)
 			for(int m = 0; m < nocc; ++m)
-				D(mu, nu) += C0(mu,m) * C0(nu,m);
-	cout << D << endl; // TODO: fix print formatting
+				D0(mu, nu) += C0(mu,m) * C0(nu,m);
+	cout << D0 << endl; // TODO: fix print formatting
+	
+	// compute initial SCF energy
+	Matrix F = H;
+	double elec0 = (D0.array() * (H.array() + F.array())).sum();
+	double E_tot = elec0 + enuc;
+	cout << elec0 << endl; // TODO: fix print formatting
+
 
 	return 0;
 }
