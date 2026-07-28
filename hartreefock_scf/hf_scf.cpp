@@ -2,6 +2,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <cmath>
+#include <ratio>
 
 #include "Eigen/Dense"
 
@@ -72,6 +74,17 @@ int main(int argc, char* argv[])
 	while(two_elec >> i >> j >> k >> l >> x) { 
 		eri[ compound( compound(i-1,j-1), compound(k-1,l-1) ) ] = x; 
 	}
+
+	// orthogonalization matrix
+	Vector lambda(n);
+	Eigen::SelfAdjointEigenSolver<Matrix> solver(S);
+	Matrix evals = solver.eigenvalues();
+	Matrix evecs = solver.eigenvectors();
+	for(int h=0; h < n; h++) {
+		lambda(h) = pow(evals(h),(-1.0/2.0));
+	}
+	Matrix S_half = evecs * lambda.asDiagonal() * evecs.transpose();
+	cout << S_half << endl; // TODO: fix print formating 
 
 	return 0;
 }
