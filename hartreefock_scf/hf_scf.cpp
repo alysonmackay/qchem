@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <vector>
 
 #include "Eigen/Dense"
 
@@ -8,6 +9,20 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> M
 typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 
 using namespace std;
+
+void fill(Matrix& mat, const string& path) {
+	ifstream in(path);
+	int i, j = 0;
+	double x;
+	while(in >> i >> j >> x) {
+		mat(i-1, j-1) = x; 
+		mat(j-1, i-1) = x;
+	}
+}
+
+int compound(int a, int b) {
+	return a>b ? a*(a+1)/2 + b : b*(b+1)/2 + a; // TODO: refactor to use pre-computed lookup arrays
+}
 
 int main(int argc, char* argv[]) 
 {
@@ -19,6 +34,7 @@ int main(int argc, char* argv[])
 	string tpath = dir + "t.dat";
 	string vpath = dir + "v.dat"; 
 	string npath = dir + "enuc.dat";
+	string two_path = dir + "eri.dat";
 
 	// read nuclear repulsion energy
 	ifstream enuc_data(npath);
@@ -26,40 +42,36 @@ int main(int argc, char* argv[])
 	enuc_data >> enuc;
 	printf("Nuclear repulsion energy: %10.12f\n", enuc);
 
-	// read overlap in AO basis
-	ifstream overlap(spath);
-	int r, c, n = 0;
+	// one-electron integrals
+	ifstream overlap(spath); 	// read overlap in AO basis
+	int i, j, n = 0;
 	double x; 
-	while(overlap >> r >> c >> x) {
-		if(r > n) n = r; // n = number of basis functions 
+	while(overlap >> i >> j >> x) {
+		if(i > n) n = i; // n = number of basis functions 
 	}
-	Matrix S(n,n);
-	overlap.clear();
-	overlap.seekg(0);
-	while(overlap >> r >> c >> x) {
-		S(r-1, c-1) = x;
-		S(c-1, r-1) = x;
-	}
+	overlap.close();
 
-	// read kinetic energy
-	Matrix T(n,n);
-	ifstream kinetic(tpath);
-	while(kinetic >> r >> c >> x) {
-		T(r-1, c-1) = x;
-		T(c-1, r-1) = x;
-	}
-
-	// read nuclear-attraction integrals
-	Matrix V(n,n);
-	ifstream nuclear_att(vpath);
-	while(nuclear_att >> r >> c >> x) {
-		V(r-1, c-1) = x;
-		V(c-1, r-1) = x; // TODO: create helper function for filling matrices 
-	}
+	Matrix S(n,n); 		// overlap
+	fill(S, spath);
+	Matrix T(n,n); 		// kinetic energy
+	fill(T, tpath);
+	Matrix V(n,n);		// nuclear-attraction
+	fill(V, vpath);
 
 	// core Hamiltonian
 	Matrix H = T + V; 
 	cout << H << endl;
+	
+	// two-electron integrals
+	ifstream two_elec(two_path);
+	int M = n*(n+1)/2; // number of distinict pairs
+	int size = compound(M-1, M-1) + 1; 
+
+	vector<double> eri(size);
+	int k, l = 0;
+	while(two_elec >> i >> j >> k >> l >> x) { 
+		eri[ compound( compound(i-1,j-1), compound(k-1,l-1) ) ] = x; 
+	}
 
 	return 0;
 }
