@@ -37,6 +37,7 @@ int main(int argc, char* argv[])
 	string vpath = dir + "v.dat"; 
 	string npath = dir + "enuc.dat";
 	string two_path = dir + "eri.dat";
+	string geom_path = dir + "geom.dat";
 
 	// read nuclear repulsion energy
 	ifstream enuc_data(npath);
@@ -84,7 +85,35 @@ int main(int argc, char* argv[])
 		lambda(h) = pow(evals(h),(-1.0/2.0));
 	}
 	Matrix S_half = evecs * lambda.asDiagonal() * evecs.transpose();
-	cout << S_half << endl; // TODO: fix print formating 
+	//cout << S_half << endl; // TODO: fix print formating 
+	
+	// build inital guess density matrix
+	Matrix F0 = S_half.transpose() * H * S_half;
+	cout << F0 << endl; 
+	// diagonalize Fock matrix 
+	Eigen::SelfAdjointEigenSolver<Matrix> diag(F0);
+	Matrix epsi0 = diag.eigenvalues(); // epsilon0; orbital energies 
+	Matrix C0p = diag.eigenvectors(); // C0' coefficent matrix
+	Matrix C0 = S_half * C0p; // transform evecs to original AO basis
+	
+	ifstream geom(geom_path);
+	int natom;
+	double zvals, coords;
+	int total = 0;
+	geom >> natom;
+	for(int i=0; i < natom; i++) {
+		geom >> zvals >> coords >> coords >> coords;
+		total += zvals;
+	}
+	int nocc = total / 2; 
+	cout << nocc << endl;
+
+	Matrix D = Matrix::Zero(n,n);
+	for(int mu = 0; mu < n; ++mu)
+		for(int nu = 0; nu < n; ++nu)
+			for(int m = 0; m < nocc; ++m)
+				D(mu, nu) += C0(mu,m) * C0(nu,m);
+	cout << D << endl; // TODO: fix print formatting
 
 	return 0;
 }
