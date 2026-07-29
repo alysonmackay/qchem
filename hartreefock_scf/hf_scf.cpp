@@ -22,8 +22,10 @@ void fill(Matrix& mat, const string& path) {
 	}
 }
 
+vector<int> ioff;
+
 int compound(int a, int b) {
-	return a>b ? a*(a+1)/2 + b : b*(b+1)/2 + a; // TODO: refactor to use pre-computed lookup arrays
+	return a>b ? ioff[a] + b : ioff[b] + a;
 }
 
 int main(int argc, char* argv[]) 
@@ -68,8 +70,12 @@ int main(int argc, char* argv[])
 	// two-electron integrals
 	ifstream two_elec(two_path);
 	int M = n*(n+1)/2; // number of distinict pairs
-	int size = compound(M-1, M-1) + 1; 
+	ioff.resize(M);
+	ioff[0] = 0; 
+	for(int k=1; k < M; k++)
+		ioff[k] = ioff[k-1] +k;
 
+	int size = compound(M-1, M-1) + 1; 
 	vector<double> eri(size);
 	int k, l = 0;
 	while(two_elec >> i >> j >> k >> l >> x) { 
@@ -108,18 +114,24 @@ int main(int argc, char* argv[])
 	int nocc = total / 2; 
 	cout << nocc << endl;
 
-	Matrix D0 = Matrix::Zero(n,n);
+	Matrix D = Matrix::Zero(n,n);
 	for(int mu = 0; mu < n; ++mu)
 		for(int nu = 0; nu < n; ++nu)
 			for(int m = 0; m < nocc; ++m)
-				D0(mu, nu) += C0(mu,m) * C0(nu,m);
-	cout << D0 << endl; // TODO: fix print formatting
+				D(mu, nu) += C0(mu,m) * C0(nu,m);
+	cout << D << endl; // TODO: fix print formatting
 	
 	// compute initial SCF energy
 	Matrix F = H;
-	double elec0 = (D0.array() * (H.array() + F.array())).sum();
+	double elec0 = (D.array() * (H.array() + F.array())).sum();
 	double E_tot = elec0 + enuc;
 	cout << elec0 << endl; // TODO: fix print formatting
+	
+	// compute new Fock matrix using last density
+	
+	
+	
+
 
 
 	return 0;
