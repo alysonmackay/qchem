@@ -49,18 +49,18 @@ int main(int argc, char* argv[])
 
 	// one-electron integrals
 	ifstream overlap(spath); 	// read overlap in AO basis
-	int i, j, n = 0;
+	int i, j, nao = 0;
 	double x; 
 	while(overlap >> i >> j >> x) {
-		if(i > n) n = i; // n = number of basis functions 
+		if(i > nao) nao = i; // nao = number of basis functions 
 	}
 	overlap.close();
 
-	Matrix S(n,n); 		// overlap
+	Matrix S(nao,nao); 		// overlap
 	fill(S, spath);
-	Matrix T(n,n); 		// kinetic energy
+	Matrix T(nao,nao); 		// kinetic energy
 	fill(T, tpath);
-	Matrix V(n,n);		// nuclear-attraction
+	Matrix V(nao,nao);		// nuclear-attraction
 	fill(V, vpath);
 
 	// core Hamiltonian
@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
 	
 	// two-electron integrals
 	ifstream two_elec(two_path);
-	int M = n*(n+1)/2; // number of distinict pairs
+	int M = nao*(nao+1)/2; // number of distinict pairs
 	ioff.resize(M);
 	ioff[0] = 0; 
 	for(int k=1; k < M; k++)
@@ -83,14 +83,14 @@ int main(int argc, char* argv[])
 	}
 
 	// orthogonalization matrix
-	Vector lambda(n);
+	Vector Lambda(nao);
 	Eigen::SelfAdjointEigenSolver<Matrix> solver(S);
 	Matrix evals = solver.eigenvalues();
 	Matrix evecs = solver.eigenvectors();
-	for(int h=0; h < n; h++) {
-		lambda(h) = pow(evals(h),(-1.0/2.0));
+	for(int h=0; h < nao; h++) {
+		Lambda(h) = pow(evals(h),(-1.0/2.0));
 	}
-	Matrix S_half = evecs * lambda.asDiagonal() * evecs.transpose();
+	Matrix S_half = evecs * Lambda.asDiagonal() * evecs.transpose();
 	//cout << S_half << endl; // TODO: fix print formating 
 	
 	// build inital guess density matrix
@@ -114,10 +114,10 @@ int main(int argc, char* argv[])
 	int nocc = total / 2; 
 	cout << nocc << endl;
 
-	Matrix D = Matrix::Zero(n,n);
-	for(int mu = 0; mu < n; ++mu)
-		for(int nu = 0; nu < n; ++nu)
-			for(int m = 0; m < nocc; ++m)
+	Matrix D = Matrix::Zero(nao,nao);
+	for(int mu=0; mu < nao; ++mu)
+		for(int nu=0; nu < nao; ++nu)
+			for(int m=0; m < nocc; ++m)
 				D(mu, nu) += C0(mu,m) * C0(nu,m);
 	cout << D << endl; // TODO: fix print formatting
 	
@@ -128,11 +128,21 @@ int main(int argc, char* argv[])
 	cout << elec0 << endl; // TODO: fix print formatting
 	
 	// compute new Fock matrix using last density
-	
-	
-	
-
-
-
+	for(int i=0; i < nao; i++)
+		for(int j=0; j < nao; j++) { 
+			F(i,j) = H(i,j); 
+			for(int k=0; k < nao; k++)
+				for(int l=0; l < nao; l++) {
+     					int ij = compound(i,j);
+     					int kl = compound(k,l); 
+     					int ijkl = compound(ij,kl); 
+     					int ik = compound(i,k); 
+     					int jl = compound(j,l); 
+     					int ikjl = compound(ik,jl); 
+     					F(i,j) += D(k,l) * (2.0 * eri[ijkl] - eri[ikjl]);
+     				}
+		}
+	cout << F << endl;
+				
 	return 0;
 }
