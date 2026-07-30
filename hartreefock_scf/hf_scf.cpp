@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#include <ratio>
 
 #include "Eigen/Dense"
 
@@ -28,6 +27,37 @@ int compound(int a, int b) {
 	return a>b ? ioff[a] + b : ioff[b] + a;
 }
 
+int nao; 
+
+Matrix build_Fock(const Matrix& H, const Matrix& D, const vector<double>& eri) {
+	Matrix F(H.rows(), H.cols());
+	for(int i=0; i < nao; i++)
+		for(int j=0; j < nao; j++) { 
+			F(i,j) = H(i,j); 
+			for(int k=0; k < nao; k++)
+				for(int l=0; l < nao; l++) {
+     					int ij = compound(i,j);
+     					int kl = compound(k,l); 
+     					int ijkl = compound(ij,kl); 
+     					int ik = compound(i,k); 
+     					int jl = compound(j,l); 
+     					int ikjl = compound(ik,jl); 
+     					F(i,j) += D(k,l) * (2.0 * eri[ijkl] - eri[ikjl]);
+     				}
+		}
+	return F;
+}
+
+Matrix build_density(const Matrix& C, int nocc) {
+	Matrix D = Matrix::Zero(nao,nao);
+	for(int i=0; i < nao; i++)
+		for(int j=0; j < nao; j++)
+			for(int m=0; m < nocc; m++)
+				D(i, j) += C(i,m) * C(j,m);
+	return D;
+}
+
+
 int main(int argc, char* argv[]) 
 {
 	string sys = argv[1];
@@ -49,7 +79,7 @@ int main(int argc, char* argv[])
 
 	// one-electron integrals
 	ifstream overlap(spath); 	// read overlap in AO basis
-	int i, j, nao = 0;
+	int i, j = 0;
 	double x; 
 	while(overlap >> i >> j >> x) {
 		if(i > nao) nao = i; // nao = number of basis functions 
@@ -94,13 +124,13 @@ int main(int argc, char* argv[])
 	//cout << S_half << endl; // TODO: fix print formating 
 	
 	// build inital guess density matrix
-	Matrix F0 = S_half.transpose() * H * S_half;
-	cout << F0 << endl; 
+	Matrix F = S_half.transpose() * H * S_half;
+	cout << F << endl; 
 	// diagonalize Fock matrix 
-	Eigen::SelfAdjointEigenSolver<Matrix> diag(F0);
-	Matrix epsi0 = diag.eigenvalues(); // epsilon0; orbital energies 
-	Matrix C0p = diag.eigenvectors(); // C0' coefficent matrix
-	Matrix C0 = S_half * C0p; // transform evecs to original AO basis
+	Eigen::SelfAdjointEigenSolver<Matrix> diag(F);
+	Matrix epsi = diag.eigenvalues(); // epsilon0; orbital energies 
+	Matrix Cp = diag.eigenvectors(); // C' coefficent matrix
+	Matrix C = S_half * Cp; // backtransform evecs to original AO basis
 	
 	ifstream geom(geom_path);
 	int natom;
@@ -114,35 +144,32 @@ int main(int argc, char* argv[])
 	int nocc = total / 2; 
 	cout << nocc << endl;
 
-	Matrix D = Matrix::Zero(nao,nao);
-	for(int mu=0; mu < nao; ++mu)
-		for(int nu=0; nu < nao; ++nu)
-			for(int m=0; m < nocc; ++m)
-				D(mu, nu) += C0(mu,m) * C0(nu,m);
-	cout << D << endl; // TODO: fix print formatting
+	printf("Iter		E(elec) 	E(tot)	    		Delta(E)		RMS(D)\n"); 
+	Matrix D = build_density(C, nocc);
+	double E_elec0 = (D.array() * (H.array() + H.array())).sum();
+	double E_tot0 = E_elec0 + enuc; 
+	printf("00 %20.12f %20.12f\n", E_elec0, E_tot0);
 	
-	// compute initial SCF energy
-	Matrix F = H;
-	double elec0 = (D.array() * (H.array() + F.array())).sum();
-	double E_tot = elec0 + enuc;
-	cout << elec0 << endl; // TODO: fix print formatting
-	
-	// compute new Fock matrix using last density
-	for(int i=0; i < nao; i++)
-		for(int j=0; j < nao; j++) { 
-			F(i,j) = H(i,j); 
-			for(int k=0; k < nao; k++)
-				for(int l=0; l < nao; l++) {
-     					int ij = compound(i,j);
-     					int kl = compound(k,l); 
-     					int ijkl = compound(ij,kl); 
-     					int ik = compound(i,k); 
-     					int jl = compound(j,l); 
-     					int ikjl = compound(ik,jl); 
-     					F(i,j) += D(k,l) * (2.0 * eri[ijkl] - eri[ikjl]);
-     				}
-		}
-	cout << F << endl;
-				
+	double E_old = 0.0;
+	for(int iter=1; iter <= 100; iter++) { 
+		F = build_Fock(H, D, eri);
+
+		// new orbs 
+		Matrix Fp = S_half.transpose() * F * S_half; 
+		Eigen::SelfAdjointEigenSolver<Matrix> solv(Fp);
+		Matrix C = S_half * solv.eigenvectors();
+		Matrix D_old = D; 
+		D = build_density(C, nocc); 
+
+		double E_elec = (D.array() * (H.array() + F.array())).sum();
+		double E_tot = E_elec + enuc;
+		double dE = E_elec - E_old; 
+		double rms = (D - D_old).norm(); 
+
+		printf("%02d %20.12f %20.12f %20.12f %20.12f\n", iter, E_elec, E_tot, dE, rms); 
+		if(fabs(dE) < 1e-12 && rms < 1e-11) break; 
+		E_old = E_elec;
+	}
+
 	return 0;
 }
