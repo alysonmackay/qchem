@@ -3,6 +3,8 @@
 #include <string>
 #include <vector>
 #include <cmath>
+#include <iomanip>
+#include <algorithm>
 
 #include "Eigen/Dense"
 
@@ -21,6 +23,21 @@ void fill(Matrix& mat, const string& path) {
 	}
 }
 
+void print_matrix(const Matrix& mat) {
+	for(int start = 0; start < mat.rows(); start += 10) {
+		int end = min<int>(start + 10, mat.rows());
+		printf("\n");
+		for(int c=start; c < end; c++) printf("%12d", c+1);
+		printf("\n\n");
+		for(int r=0; r < mat.rows(); r++) {
+     			printf("%5d", r+1);
+     			for(int c=start; c < end; c++) printf("%12.7f", mat(r,c));
+     			printf("\n");
+		}
+	}
+	printf("\n");
+}
+
 vector<int> ioff;
 
 int compound(int a, int b) {
@@ -33,17 +50,18 @@ Matrix build_Fock(const Matrix& H, const Matrix& D, const vector<double>& eri) {
 	Matrix F(H.rows(), H.cols());
 	for(int i=0; i < nao; i++)
 		for(int j=0; j < nao; j++) { 
-			F(i,j) = H(i,j); 
-			for(int k=0; k < nao; k++)
+			F(i,j) = H(i,j);
+			int ij = compound(i,j);
+			for(int k=0; k < nao; k++) {
+				int ik = compound(i,k);
 				for(int l=0; l < nao; l++) {
-     					int ij = compound(i,j);
      					int kl = compound(k,l); 
      					int ijkl = compound(ij,kl); 
-     					int ik = compound(i,k); 
      					int jl = compound(j,l); 
      					int ikjl = compound(ik,jl); 
      					F(i,j) += D(k,l) * (2.0 * eri[ijkl] - eri[ikjl]);
      				}
+			}
 		}
 	return F;
 }
@@ -56,7 +74,6 @@ Matrix build_density(const Matrix& C, int nocc) {
 				D(i, j) += C(i,m) * C(j,m);
 	return D;
 }
-
 
 int main(int argc, char* argv[]) 
 {
@@ -75,7 +92,7 @@ int main(int argc, char* argv[])
 	ifstream enuc_data(npath);
 	double enuc;
 	enuc_data >> enuc;
-	printf("Nuclear repulsion energy: %10.12f\n", enuc);
+	printf("\nNuclear repulsion energy = %20.12f\n", enuc);
 
 	// one-electron integrals
 	ifstream overlap(spath); 	// read overlap in AO basis
@@ -88,14 +105,21 @@ int main(int argc, char* argv[])
 
 	Matrix S(nao,nao); 		// overlap
 	fill(S, spath);
+	printf("\nOverlap Integrals:\n");
+	print_matrix(S);
 	Matrix T(nao,nao); 		// kinetic energy
 	fill(T, tpath);
+	printf("\nKinetic-Energy Integrals:\n");
+	print_matrix(T);
 	Matrix V(nao,nao);		// nuclear-attraction
 	fill(V, vpath);
+	printf("\nNuclear Attraction Integrals:\n");
+	print_matrix(V);
 
 	// core Hamiltonian
 	Matrix H = T + V; 
-	cout << H << endl;
+	printf("\nCore Hamiltonian:\n");
+	print_matrix(H);
 	
 	// two-electron integrals
 	ifstream two_elec(two_path);
@@ -104,7 +128,6 @@ int main(int argc, char* argv[])
 	ioff[0] = 0; 
 	for(int k=1; k < M; k++)
 		ioff[k] = ioff[k-1] +k;
-
 	int size = compound(M-1, M-1) + 1; 
 	vector<double> eri(size);
 	int k, l = 0;
@@ -121,16 +144,20 @@ int main(int argc, char* argv[])
 		Lambda(h) = pow(evals(h),(-1.0/2.0));
 	}
 	Matrix S_half = evecs * Lambda.asDiagonal() * evecs.transpose();
-	//cout << S_half << endl; // TODO: fix print formating 
-	
+	printf("\nS^-1/2 Matrix:\n");
+	print_matrix(S_half);
+
 	// build inital guess density matrix
 	Matrix F = S_half.transpose() * H * S_half;
-	cout << F << endl; 
+	printf("\nInitial Fock Matrix:\n");
+	print_matrix(F);
 	// diagonalize Fock matrix 
 	Eigen::SelfAdjointEigenSolver<Matrix> diag(F);
 	Matrix epsi = diag.eigenvalues(); // epsilon0; orbital energies 
 	Matrix Cp = diag.eigenvectors(); // C' coefficent matrix
 	Matrix C = S_half * Cp; // backtransform evecs to original AO basis
+	printf("\nInitial C Matrix:\n");
+	print_matrix(C);
 	
 	ifstream geom(geom_path);
 	int natom;
@@ -142,15 +169,17 @@ int main(int argc, char* argv[])
 		total += zvals;
 	}
 	int nocc = total / 2; 
-	cout << nocc << endl;
+	printf("\nNumber of occupied orbitals = %d\n", nocc);
 
-	printf("Iter		E(elec) 	E(tot)	    		Delta(E)		RMS(D)\n"); 
 	Matrix D = build_density(C, nocc);
-	double E_elec0 = (D.array() * (H.array() + H.array())).sum();
+	printf("\nInitial Density Matrix:\n");
+	print_matrix(D);
+	printf("%-10s%10s%20s%20s%20s\n", "Iter", "E(elec)", "E(tot)", "Delta(E)", "RMS(D)"); 
+	double E_elec0 = (D.array() * (2 * H.array())).sum();
 	double E_tot0 = E_elec0 + enuc; 
 	printf("00 %20.12f %20.12f\n", E_elec0, E_tot0);
 	
-	double E_old = 0.0;
+	double E_old = E_elec0;
 	for(int iter=1; iter <= 100; iter++) { 
 		F = build_Fock(H, D, eri);
 
