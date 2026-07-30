@@ -13,6 +13,13 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 
 using namespace std;
 
+string sys, basis;
+string path(const string& name) {
+	string dir = "input/" + sys + "/" + basis + "/";
+	string filename = dir + name + ".dat"; 
+	return filename;
+}
+
 void fill(Matrix& mat, const string& path) {
 	ifstream in(path);
 	int i, j = 0;
@@ -77,25 +84,17 @@ Matrix build_density(const Matrix& C, int nocc) {
 
 int main(int argc, char* argv[]) 
 {
-	string sys = argv[1];
-	string basis = argv[2];
-
-	string dir = "input/" + sys + "/" + basis + "/"; 
-	string spath = dir + "s.dat";
-	string tpath = dir + "t.dat";
-	string vpath = dir + "v.dat"; 
-	string npath = dir + "enuc.dat";
-	string two_path = dir + "eri.dat";
-	string geom_path = dir + "geom.dat";
+	sys = argv[1];
+	basis = argv[2];
 
 	// read nuclear repulsion energy
-	ifstream enuc_data(npath);
+	ifstream enuc_data(path("enuc"));
 	double enuc;
 	enuc_data >> enuc;
 	printf("\nNuclear repulsion energy = %20.12f\n", enuc);
 
 	// one-electron integrals
-	ifstream overlap(spath); 	// read overlap in AO basis
+	ifstream overlap(path("s")); 	// read overlap in AO basis
 	int i, j = 0;
 	double x; 
 	while(overlap >> i >> j >> x) {
@@ -104,15 +103,15 @@ int main(int argc, char* argv[])
 	overlap.close();
 
 	Matrix S(nao,nao); 		// overlap
-	fill(S, spath);
+	fill(S, path("s"));
 	printf("\nOverlap Integrals:\n");
 	print_matrix(S);
 	Matrix T(nao,nao); 		// kinetic energy
-	fill(T, tpath);
+	fill(T, path("t"));
 	printf("\nKinetic-Energy Integrals:\n");
 	print_matrix(T);
 	Matrix V(nao,nao);		// nuclear-attraction
-	fill(V, vpath);
+	fill(V, path("v"));
 	printf("\nNuclear Attraction Integrals:\n");
 	print_matrix(V);
 
@@ -122,7 +121,7 @@ int main(int argc, char* argv[])
 	print_matrix(H);
 	
 	// two-electron integrals
-	ifstream two_elec(two_path);
+	ifstream two_elec(path("eri"));
 	int M = nao*(nao+1)/2; // number of distinict pairs
 	ioff.resize(M);
 	ioff[0] = 0; 
@@ -159,7 +158,7 @@ int main(int argc, char* argv[])
 	printf("\nInitial C Matrix:\n");
 	print_matrix(C);
 	
-	ifstream geom(geom_path);
+	ifstream geom(path("geom"));
 	int natom;
 	double zvals, coords;
 	int total = 0;
