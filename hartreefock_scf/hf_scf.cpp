@@ -177,7 +177,8 @@ int main(int argc, char* argv[])
 	double E_elec0 = (D.array() * (2 * H.array())).sum();
 	double E_tot0 = E_elec0 + enuc; 
 	printf("00 %20.12f %20.12f\n", E_elec0, E_tot0);
-	
+
+	// begin SCF iterations until energy convergence 
 	double E_old = E_elec0;
 	for(int iter=1; iter <= 100; iter++) { 
 		F = build_Fock(H, D, eri);
@@ -185,7 +186,7 @@ int main(int argc, char* argv[])
 		// new orbs 
 		Matrix Fp = S_half.transpose() * F * S_half; 
 		Eigen::SelfAdjointEigenSolver<Matrix> solv(Fp);
-		Matrix C = S_half * solv.eigenvectors();
+		C = S_half * solv.eigenvectors();
 		Matrix D_old = D; 
 		D = build_density(C, nocc); 
 
@@ -195,9 +196,17 @@ int main(int argc, char* argv[])
 		double rms = (D - D_old).norm(); 
 
 		printf("%02d %20.12f %20.12f %20.12f %20.12f\n", iter, E_elec, E_tot, dE, rms); 
-		if(fabs(dE) < 1e-12 && rms < 1e-11) break; 
+		if(fabs(dE) < 1e-12 && rms < 1e-11) {
+			printf("\nThe SCF energy has converged!\n");
+			break;
+		}
 		E_old = E_elec;
 	}
 
+	// MO basis Fock matrix 
+	Matrix F_MO = C.transpose() * F * C;
+	printf("\nFock Matrix in MO Basis:\n");
+	print_matrix(F_MO);
+	
 	return 0;
 }
