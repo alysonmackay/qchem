@@ -9,17 +9,15 @@
 
 using namespace std;
 
-string sys, basis;
+string sys, basis, root;
 vector<int> ioff; 
 int nao;
 
-
 string path(const string& name) {
-	string dir = "input/" + sys + "/" + basis + "/";
+	string dir = root + "/" + sys + "/" + basis + "/";
 	string filename = dir + name + ".dat"; 
 	return filename;
 }
-
 
 void fill(Matrix& mat, const string& path) {
 	ifstream in(path);
@@ -79,10 +77,12 @@ Matrix build_density(const Matrix& C, int nocc) {
 	return D;
 }
 
-Result run_scf(const string& sys_in, const string& basis_in) {
+Result run_scf(const string& sys_in, const string& basis_in, const string& root_in) {
 
 	sys = sys_in; 
 	basis = basis_in;
+	root = root_in;
+
 
 	printf("\nMolecule: %s\nBasis: %s\n", sys.c_str(), basis.c_str());
 
