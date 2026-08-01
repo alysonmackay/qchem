@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++14 -Wall -O2
 INCLUDES = -isystem ../eigen/
 
 TARGET  = hf_scf
-OBJECTS = hf_scf.o 
+OBJECTS = hf_scf.o hf.o
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET)
