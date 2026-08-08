@@ -10,6 +10,7 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 struct Result {
 	Matrix C;
 	Vector epsi;
+	int nocc;
 };
 
 void print_matrix(const Matrix& mat);

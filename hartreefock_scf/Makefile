@@ -2,8 +2,8 @@ CXX      = g++
 CXXFLAGS = -std=c++14 -Wall -O2
 INCLUDES = -isystem ../eigen/
 
-TARGET  = hf_scf
-OBJECTS = hf_scf.o hf.o
+TARGET  = main
+OBJECTS = main.o hf_scf.o
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET)
@@ -13,7 +13,7 @@ $(TARGET): $(OBJECTS)
 
 .PHONY: clean run
 clean:
-	rm -f $(OBJECTS) $(TARGET) hf_scf.out
+	rm -f $(OBJECTS) $(TARGET) hf_scf_h2o.out
 
 run: $(TARGET) 
-	./$(TARGET) h2o STO-3G >> hf_scf.out 
+	./$(TARGET) h2o STO-3G >> hf_scf_h2o.out 
