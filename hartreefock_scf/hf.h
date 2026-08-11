@@ -11,6 +11,7 @@ struct Result {
 	Matrix C;
 	Vector epsi;
 	int nocc;
+	double Escf;
 };
 
 void print_matrix(const Matrix& mat);

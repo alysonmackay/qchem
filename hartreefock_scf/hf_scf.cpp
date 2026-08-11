@@ -179,6 +179,7 @@ Result run_scf(const string& sys_in, const string& basis_in, const string& root_
 
 	// begin SCF iterations until energy convergence 
 	double E_old = E_elec0;
+	double E_tot = 0.0;
 	for(int iter=1; iter <= 100; iter++) { 
 		F = build_Fock(H, D, eri);
 
@@ -191,7 +192,7 @@ Result run_scf(const string& sys_in, const string& basis_in, const string& root_
 		D = build_density(C, nocc); 
 
 		double E_elec = (D.array() * (H.array() + F.array())).sum();
-		double E_tot = E_elec + enuc;
+		E_tot = E_elec + enuc;
 		double dE = E_elec - E_old; 
 		double rms = (D - D_old).norm(); 
 
@@ -208,10 +209,11 @@ Result run_scf(const string& sys_in, const string& basis_in, const string& root_
 	printf("\nFock Matrix in MO Basis:\n");
 	print_matrix(F_MO);
 
-	Result MO; 
+	Result MO;
 	MO.C = C; 
 	MO.epsi = epsi;
 	MO.nocc = nocc;
+	MO.Escf = E_tot;
 
 	return MO;
 
