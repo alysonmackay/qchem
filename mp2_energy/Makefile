@@ -3,7 +3,7 @@ CXXFLAGS = -std=c++14 -Wall -O2
 INCLUDES = -isystem ../eigen/ -I../hartreefock_scf/
 
 TARGET  = mp2_energy
-OBJECTS = mp2_energy.o ../hartreefock_scf/hf.o
+OBJECTS = mp2_energy.o ../hartreefock_scf/hf_scf.o
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET)
