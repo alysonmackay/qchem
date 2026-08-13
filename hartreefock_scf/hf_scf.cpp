@@ -210,7 +210,8 @@ Result run_scf(const string& sys_in, const string& basis_in, const string& root_
 	print_matrix(F_MO);
 
 	Result MO;
-	MO.C = C; 
+	MO.C = C;
+	MO.H = H;
 	MO.epsi = epsi;
 	MO.TEI_AO = std::move(eri);
 	MO.nocc = nocc;

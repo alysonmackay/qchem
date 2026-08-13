@@ -11,6 +11,7 @@ typedef Eigen::Matrix<double, Eigen::Dynamic, 1> Vector;
 
 struct Result {
 	Matrix C;
+	Matrix H;
 	Vector epsi;
 	int nocc;
 	double Escf;
