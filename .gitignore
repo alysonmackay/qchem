@@ -1,0 +1,15 @@
+# build artifacts 
+*.o
+*.o.tmp 
+
+# binaries
+geom_analysis/src/geom
+vib_freq/src/vib_analysis
+hartreefock_scf/main
+mp2_energy/main
+
+# program outputs 
+*.out
+
+# extracted from eigen.tar.gz 
+eigen/
