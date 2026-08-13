@@ -2,6 +2,8 @@
 #define HF_H
 
 #include <string>
+#include <vector>
+
 #include "Eigen/Dense"
 
 typedef Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor> Matrix;
@@ -12,7 +14,11 @@ struct Result {
 	Vector epsi;
 	int nocc;
 	double Escf;
+	std::vector<double> TEI_AO;
 };
+
+extern std::vector<int> ioff;
+int compound(int a, int b); 
 
 void print_matrix(const Matrix& mat);
 

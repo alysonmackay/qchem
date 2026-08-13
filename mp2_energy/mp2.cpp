@@ -1,16 +1,9 @@
-#include "hf.h"
+#include "mp2.h"
 
 #include <iostream>
-#include <fstream>
 #include <chrono>
 
 using namespace std;
-
-static vector<int> ioff;
-static int compound(int a, int b) {
-	return a>b ? ioff[a] + b : ioff[b] + a;
-}
-
 
 vector<double> ao2mo(const vector<double>& TEI_AO, const Matrix& coeff, int nao) {
 	// transform TEI_AO to MO basis 
@@ -54,8 +47,8 @@ vector<double> ao2mo(const vector<double>& TEI_AO, const Matrix& coeff, int nao)
 	return TEI_MO;
 }
 
-// transform TEI_AO to MO basis 
-vector<double> ao2mo_transform(const vector<double>& TEI_AO, const Matrix& coeff, int nao) {
+// brute force N^8 version of algorithm; keep for testing
+vector<double> ao2mo_brute(const vector<double>& TEI_AO, const Matrix& coeff, int nao) {
 	int size = TEI_AO.size();
 	vector<double> TEI_MO(size);
 	int i, j, k, l, ijkl; // MO indices 
@@ -85,41 +78,24 @@ vector<double> ao2mo_transform(const vector<double>& TEI_AO, const Matrix& coeff
 	return TEI_MO;
 }
 
+double mp2_energy(const string& sys_in, const string& basis_in, const string& root_in) {
 
-int main(int argc, char* argv[]) {
+	string sys = sys_in; 
+	string basis = basis_in;
+	string root = root_in;
 
 	// run HF SCF to get converged MOs
-	Result conv_orbs = run_scf(argv[1], argv[2]);
+	Result conv_orbs = run_scf(sys, basis);
 	printf("\nConverged MO Coefficient Matrix:\n");
 	print_matrix(conv_orbs.C);
 	printf("\nConverged MO Energies:\n");
 	cout << conv_orbs.epsi << endl;
-	double E_scf = conv_orbs.Escf; 
-
-	// read two-electron integrals in AO basis
+	double E_scf = conv_orbs.Escf;
 	int nao = conv_orbs.C.rows();
-	ifstream two_elec("../input/" + string(argv[1]) + "/" + argv[2] + "/eri.dat"); // kinda messy 
-	int M = nao*(nao+1)/2; // number of distinict pairs
-	ioff.resize(M);
-	ioff[0] = 0; 
-	for(int k=1; k < M; k++)
-		ioff[k] = ioff[k-1] +k;
-	int size = compound(M-1, M-1) + 1; 
-	vector<double> TEI_AO(size);
-	int p, q, r, s; // AO indices 
-	double x;
-	while(two_elec >> p >> q >> r >> s >> x) { 
-		TEI_AO[ compound( compound(p-1,q-1), compound(r-1,s-1) ) ] = x; 
-	}
 
-	auto t0_brute = chrono::steady_clock::now(); 
-	vector<double> TEI_MO_brute = ao2mo_transform(TEI_AO, conv_orbs.C, nao); // N^8 algorithm
-	auto t1_brute = chrono::steady_clock::now();
-	chrono::duration<double> dt_brute = t1_brute - t0_brute;
-	printf("\nTime for AO2MO Transformation (N^8): %.6f s\n", dt_brute.count());
-
+	// AO to MO basis transformation 
 	auto t0 = chrono::steady_clock::now(); 
-	vector<double> TEI_MO = ao2mo(TEI_AO, conv_orbs.C, nao); // N^5 algorithm
+	vector<double> TEI_MO = ao2mo(conv_orbs.TEI_AO, conv_orbs.C, nao); // N^5 algorithm
 	auto t1 = chrono::steady_clock::now();
 	chrono::duration<double> dt = t1 - t0;
 	printf("\nTime for AO2MO Transformation (N^5): %.6f s\n", dt.count());
@@ -147,6 +123,6 @@ int main(int argc, char* argv[]) {
 	printf("\nMP2 Energy: %.12f\n", Emp2);
 	double E_tot = E_scf + Emp2; 
 	printf("\nTotal Energy: %.12f\n", E_tot);
-	
-	return 0;
+
+	return Emp2;
 }
