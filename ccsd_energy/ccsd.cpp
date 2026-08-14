@@ -11,7 +11,7 @@ using Vec3 = vector<Vec2>;
 using Tensor4 = vector<Vec3>;
 
 int spatial(int k) {return k / 2; }
-bool same_spin(int k, int l) {return k%2 == l%2; } 
+bool same_spin(int k, int l) {return k%2 == l%2; }
 
 
 Tensor4 mo2so(const vector<double>& TEI_MO, int nao) {
@@ -48,22 +48,23 @@ int main(int argc, char* argv[])
 	int nao = conv_orbs.C.rows();
 
 	// AO to MO basis transformation (spatial) 
-	auto t0 = chrono::steady_clock::now();
+	auto time0 = chrono::steady_clock::now();
 	vector<double> TEI_MO = ao2mo(conv_orbs.TEI_AO, conv_orbs.C, nao); // N^5 algorithm
-	auto t1 = chrono::steady_clock::now();
-	chrono::duration<double> dt = t1 - t0;
+	auto time1 = chrono::steady_clock::now();
+	chrono::duration<double> dt = time1 - time0;
 	printf("\nTime for AO2MO Transformation (N^5): %.6f s\n", dt.count());
 
 	// spatial MO basis -> spin-orbital basis transform
 	Tensor4 TEI_SO = mo2so(TEI_MO, nao);
 	
-	int nso = 2 * nao;
+	int nso = 2 * nao; // total number of spin orbitals (occ + vit) 
 	int ndocc = conv_orbs.nocc;
 	int nelec = 2 * ndocc; // number of occupied spin orbitals
 	
 	Matrix h = conv_orbs.C.transpose() * conv_orbs.H * conv_orbs.C; // Hamilontian in MO basis
 	Matrix f = Matrix::Zero(nso,nso); 
 
+	// spin-orbital Fock matrix
 	for(int p=0; p < nso; p++)
 		for(int q=0; q < nso; q++) {
 			f(p,q) = h(spatial(p),spatial(q)) * same_spin(p,q);
@@ -71,7 +72,36 @@ int main(int argc, char* argv[])
 				f(p,q) += TEI_SO[p][m][q][m];
 		}
 	
-	print_matrix(f); 
+	print_matrix(f);
+
+	// build inital-guess cluster amplitudes 
+	Matrix t1 = Matrix::Zero(nso,nso); // first order guess for singles -> 0 
+	Tensor4 t2(nso, Vec3(nso, Vec2(nso, Vec1(nso, 0.0))));
+
+	Matrix D1 = Matrix::Zero(nso,nso); 
+	Tensor4 D2(nso, Vec3(nso, Vec2(nso, Vec1(nso, 0.0))));
+
+	for(int i=0; i < nelec; i++) 
+		for(int a=nelec; a < nso; a++) {
+			D1(i,a) = f(i,i) - f(a,a);
+		}
+
+	for(int i=0; i < nelec; i++)
+		for(int j=0; j < nelec; j++) 
+			for(int a=nelec; a < nso; a++)
+				for(int b=nelec; b < nso; b++) {
+					D2[i][j][a][b] = f(i,i) + f(j,j) - f(a,a) - f(b,b);
+				}
+	double Emp2 = 0.0; 
+	for(int i=0; i < nelec; i++)
+		for(int j=0; j < nelec; j++) 
+			for(int a=nelec; a < nso; a++)
+				for(int b=nelec; b < nso; b++) {
+					t2[i][j][a][b] = TEI_SO[i][j][a][b] / D2[i][j][a][b];
+					Emp2 += (0.25) * TEI_SO[i][j][a][b] * t2[i][j][a][b]; 
+				}
+	printf("\nCCSD-guess MP2 Energy: %.12f\n", Emp2); 
+
 
 	return 0;
 }
