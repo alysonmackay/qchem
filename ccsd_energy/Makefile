@@ -2,8 +2,8 @@ CXX      = g++
 CXXFLAGS = -std=c++14 -Wall -O2
 INCLUDES = -isystem ../eigen/ -I../hartreefock_scf/ -I../mp2_energy/
 
-TARGET  = ccsd
-OBJECTS = ccsd.o ../mp2_energy/mp2.o ../hartreefock_scf/hf_scf.o
+TARGET  = main
+OBJECTS = main.o ccsd.o ../mp2_energy/mp2.o ../hartreefock_scf/hf_scf.o
 
 $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(OBJECTS) -o $(TARGET)
