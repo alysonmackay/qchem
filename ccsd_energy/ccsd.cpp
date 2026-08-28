@@ -7,19 +7,10 @@
 
 using namespace std;
 
-
 double run_ccsd(const string& sys_in, const string& basis_in, const string& root_in) {
 
-	string sys = sys_in; 
-	string basis = basis_in;
-	string root = root_in;
-
 	// run HF SCF to get converged MOs
-	Result conv_orbs = run_scf(sys, basis);
-	printf("\nConverged MO Coefficient Matrix:\n");
-	print_matrix(conv_orbs.C);
-	printf("\nConverged MO Energies:\n");
-	cout << conv_orbs.epsi << endl;
+	Result conv_orbs = run_scf_verbose(sys_in, basis_in);
 	double Escf = conv_orbs.Escf;
 	int nao = conv_orbs.C.rows();
 
@@ -70,8 +61,7 @@ double run_ccsd(const string& sys_in, const string& basis_in, const string& root
 		Ecc = cc_energy(f, TEI_SO, A, nso, nelec);
 		Etot = Escf + Ecc;
 		double dE = Ecc - E_old; 
-		//double rms = (D - D_old).norm(); 
-
+	
 		printf("%02d %20.12f %20.12f %20.12f\n", iter, Ecc, Etot, dE); 
 		if(fabs(dE) < 1e-12) {
 			printf("\nThe CCSD energy has converged!\n");
