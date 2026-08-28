@@ -21,10 +21,6 @@ struct Amplitudes {
 	Tensor4 t2;
 };
 
-int spatial(int k);
-bool same_spin(int k, int l);
-
-Tensor4 mo2so(const std::vector<double>& TEI_MO, int nao);
 double run_ccsd(const std::string& sys_in, const std::string& basis_in, const std::string& root_in = "../input");
 
 #endif
