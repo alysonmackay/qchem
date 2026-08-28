@@ -220,3 +220,14 @@ Result run_scf(const string& sys_in, const string& basis_in, const string& root_
 	return MO;
 
 }
+
+Result run_scf_verbose(const string& sys_in, const string& basis_in, const string& root_in) {
+
+	Result conv_orbs = run_scf(sys_in, basis_in, root_in);
+	printf("\nConverged MO Coefficient Matrix:\n");
+	print_matrix(conv_orbs.C);
+	printf("\nConverged MO Energies:\n");
+	cout << conv_orbs.epsi << endl;
+
+	return conv_orbs;
+}
