@@ -2,31 +2,6 @@
 
 using namespace std;
 
-
-int spatial(int k) {return k / 2; }
-bool same_spin(int k, int l) {return k%2 == l%2; } // spin parity
-
-Tensor4 mo2so(const vector<double>& TEI_MO, int nao) {
-	int nso = 2 * nao; // spin orbitals 
-	Tensor4 TEI_SO(nso, Vec3(nso, Vec2(nso, Vec1(nso, 0.0))));
-
-	for(int p=0; p < nso; p++)
-		for(int q=0; q < nso; q++)
-			for(int r=0; r < nso; r++) 
-				for(int s=0; s < nso; s++) {
-					int pr = compound(spatial(p),spatial(r));
-					int qs = compound(spatial(q),spatial(s));
-					int pqrs = compound(pr,qs);
-					double direct = TEI_MO[pqrs] * same_spin(p,r) * same_spin(q,s); // Dirac <pq|rs>
-					int ps = compound(spatial(p),spatial(s));
-					int qr = compound(spatial(q),spatial(r));
-					int psqr = compound(ps,qr);
-					double exchange = TEI_MO[psqr] * same_spin(p,s) * same_spin(q,r); // <pq|sr>
-					TEI_SO[p][q][r][s] = direct - exchange; // antisymmetrized <pq||rs> 
-				}
-	return TEI_SO;
-}
-
 Matrix build_f(const Matrix& h, const Tensor4& TEI_SO, int nso, int nelec) {
 	Matrix f = Matrix::Zero(nso,nso); 
 	for(int p=0; p < nso; p++)
@@ -80,6 +55,5 @@ double Emp2_guess(const Tensor4& TEI_SO, const Amplitudes& A, int nso, int nelec
 				for(int b=nelec; b < nso; b++) {
 					Emp2 += (0.25) * TEI_SO[i][j][a][b] * A.t2[i][j][a][b]; 
 				}
-	//printf("\nCluster amplitude-guess MP2 Energy: %.12f\n", Emp2);
 	return Emp2;
 }
