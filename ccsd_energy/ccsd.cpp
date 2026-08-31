@@ -1,13 +1,14 @@
 #include "ccsd.h"
 #include "ccsd_setup.h"
 #include "cc_int.h"
+#include "triples.h"
 
 #include <iostream>
 #include <vector>
 
 using namespace std;
 
-double run_ccsd(const string& sys_in, const string& basis_in, const string& root_in) {
+ccsd run_ccsd(const string& sys_in, const string& basis_in, const string& root_in) {
 
 	// run HF SCF to get converged MOs
 	Result conv_orbs = run_scf_verbose(sys_in, basis_in);
@@ -29,14 +30,9 @@ double run_ccsd(const string& sys_in, const string& basis_in, const string& root
 	const Matrix& D1 = D.D1;
 	const Tensor4& D2 = D.D2;
 	Amplitudes A = initial_guess_amp(TEI_SO, D2, nso, nelec);
-	double Emp2 = Emp2_guess(TEI_SO, A, nso, nelec);
-	double Etot = Escf + Emp2;
 	printf("\nEscf = %10.12f\n", Escf);
-	printf("\nEmp2 = %10.12f\n", Emp2);
-	printf("\nEtot = %10.12f\n", Etot);
 
 	double Ecc = cc_energy(f, TEI_SO, A, nso, nelec);
-	//printf("\nIter = 1  Ecc = %10.12f\n", Ecc);
 	double E_old = Ecc;
 
 	for(int iter=1; iter<=100; iter++) {
@@ -59,7 +55,7 @@ double run_ccsd(const string& sys_in, const string& basis_in, const string& root
 		A = A_new;
 	
 		Ecc = cc_energy(f, TEI_SO, A, nso, nelec);
-		Etot = Escf + Ecc;
+		double Etot = Escf + Ecc;
 		double dE = Ecc - E_old; 
 	
 		printf("%02d %20.12f %20.12f %20.12f\n", iter, Ecc, Etot, dE); 
@@ -69,5 +65,35 @@ double run_ccsd(const string& sys_in, const string& basis_in, const string& root
 		}
 		E_old = Ecc;
 	}
-	return Ecc;
+	double Eccsd = Escf + Ecc;
+	printf("\nEccsd = %10.12f\n", Eccsd);
+	
+	ccsd output;
+	output.f = f; 
+	output.A = A;
+	output.TEI_SO = TEI_SO;
+	output.nso = nso;
+	output.nelec = nelec;
+	output.Ecc = Ecc;
+	output.Eccsd = Eccsd;
+
+	return output;
+}
+
+double run_ccsdt(const string& sys_in, const string& basis_in, const string& root_in) {
+	ccsd CCSD = run_ccsd(sys_in, basis_in);
+	double Eccsd = CCSD.Eccsd;
+
+	// triples correction CCSD(T)
+	Tensor6 D3 = build_D3(CCSD.f, CCSD.nso, CCSD.nelec);
+	Tensor6 T3d = disconnected_triples(CCSD.A, CCSD.TEI_SO, D3, CCSD.nso, CCSD.nelec);
+	Tensor6 T3c = connected_triples(CCSD.A, CCSD.TEI_SO, D3, CCSD.nso, CCSD.nelec);
+
+	double ET = Etriples(T3c, T3d, D3, CCSD.nso, CCSD.nelec);
+	double EccsdT = Eccsd + ET;
+	printf("\nE(T) = %10.12f\n", ET);
+	printf("\nEccsd(T) = %10.12f\n", EccsdT);
+
+	return EccsdT;
+
 }

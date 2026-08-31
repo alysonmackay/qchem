@@ -6,7 +6,7 @@
 #include <string>
 
 struct Denoms {
-	Matrix D1; 
+	Matrix D1;
 	Tensor4 D2;
 };
 
@@ -15,6 +15,16 @@ struct Amplitudes {
 	Tensor4 t2;
 };
 
-double run_ccsd(const std::string& sys_in, const std::string& basis_in, const std::string& root_in = "../input");
+struct ccsd {
+	Matrix f;
+	Amplitudes A;
+	Tensor4 TEI_SO;
+	int nso;
+	int nelec;
+	double Eccsd;
+	double Ecc;
+};
+
+ccsd run_ccsd(const std::string& sys_in, const std::string& basis_in, const std::string& root_in = "../input");
 
 #endif
